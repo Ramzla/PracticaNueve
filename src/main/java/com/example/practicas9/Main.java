@@ -7,6 +7,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -54,13 +56,64 @@ public class Main extends Application {
     private Recompensa[] perlas;
     private boolean[] recogidas;
     private int cantidadPerlas;
-    private boolean termino, boyaUsada;
+    private boolean termino;
+    private Stage ventanaPrincipal;
     private String mensaje;
-    private EstadoBoya estadoBoya;
 
     @Override
     public void start(Stage ventana) {
-        iniciarJuego();
+        ventanaPrincipal = ventana;
+        mostrarMenu(ventana);
+    }
+
+    private void mostrarMenu(Stage ventana) {
+        Label titulo = new Label("Rescate Marino");
+        titulo.setFont(Font.font("Arial", 25));
+        titulo.setStyle("-fx-text-fill: #135e87; -fx-font-weight: bold;");
+
+        Label descripcion = new Label("Elige cómo quieres jugar");
+        descripcion.setStyle("-fx-text-fill: #406a7d;");
+
+        Button nueva = new Button("Nueva partida");
+        Button cargar = new Button("Cargar partida");
+        nueva.setPrefWidth(190);
+        cargar.setPrefWidth(190);
+        nueva.setStyle("-fx-background-color: #168bc4; -fx-text-fill: white; -fx-font-size: 14px;");
+        cargar.setStyle("-fx-background-color: #d8ebf5; -fx-text-fill: #145b7e; -fx-font-size: 14px;");
+
+        nueva.setOnAction(e -> {
+            iniciarJuego();
+            abrirJuego(ventana);
+        });
+
+        cargar.setOnAction(e -> {
+            iniciarJuego();
+            if (cargarPartida()) {
+                abrirJuego(ventana);
+            } else {
+                Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+                alerta.initOwner(ventana);
+                alerta.setTitle("Cargar partida");
+                alerta.setHeaderText("No se pudo cargar la partida");
+                alerta.setContentText("Revisa que exista un archivo partida.txt válido en la carpeta del proyecto.");
+                alerta.showAndWait();
+            }
+        });
+
+        VBox menu = new VBox(16, titulo, descripcion, nueva, cargar);
+        menu.setAlignment(Pos.CENTER);
+        menu.setPadding(new Insets(24));
+        menu.setStyle("-fx-background-color: #eaf7ff;");
+
+        ventana.setTitle("Rescate Marino - Inicio");
+        ventana.setResizable(false);
+        ventana.setScene(new Scene(menu, 360, 250));
+        ventana.sizeToScene();
+        ventana.centerOnScreen();
+        ventana.show();
+    }
+
+    private void abrirJuego(Stage ventana) {
         cargarImagenes();
         tablero = new Canvas(columnas * casilla, filas * casilla);
 
@@ -86,14 +139,17 @@ public class Main extends Application {
         ventana.setTitle("Práctica 9 - Rescate Marino");
         ventana.setResizable(false);
         ventana.setScene(escena);
+        ventana.sizeToScene();
+        ventana.centerOnScreen();
         ventana.show();
+        vidasAnteriores = jugador.getVida();
         actualizar();
     }
 
     private VBox crearPanel() {
         Label titulo = new Label("Rescate Marino");
         titulo.setFont(Font.font("Arial", 22));
-        Label objetivo = new Label("Recoge 3 perlas y llega al submarino. La boya guarda tu progreso una sola vez.");
+        Label objetivo = new Label("Recoge 3 perlas y llega al submarino. Regresa a la boya para actualizar el guardado.");
         objetivo.setWrapText(true);
 
         HBox filaVidas = fila("Vidas:", 5);
@@ -128,7 +184,7 @@ public class Main extends Application {
                 control("teclas", 105, "Mover", 12),
                 control("espacio", 110, "Atacar", 7),
                 control("f", 48, "Curar", 12),
-                control("r", 48, "Reiniciar", 12));
+                control("r", 48, "Menú principal", 12));
 
         aviso = new Label();
         aviso.setWrapText(true);
@@ -196,15 +252,34 @@ public class Main extends Application {
         recogidas = new boolean[3];
         cantidadPerlas = 0;
         termino = false;
-        boyaUsada = false;
-        estadoBoya = null;
-        mensaje = "Recoge las 3 perlas. Puedes usar la boya una vez para guardar tu progreso.";
+        mensaje = "Recoge las 3 perlas. Puedes regresar a la boya para guardar de nuevo.";
     }
 
     private void reiniciar() {
-        iniciarJuego();
-        vidasAnteriores = maxVidas;
-        actualizar();
+        mostrarMenu(ventanaPrincipal);
+    }
+
+    private boolean guardarPartida() {
+        try {
+            ArchivoPartida.guardar(nivel, jugador, tiburones, botiquin, recogidas, lugaresPerlas);
+            return true;
+        } catch (java.io.IOException e) {
+            mensaje = "Error al guardar: " + e.getMessage();
+            return false;
+        }
+    }
+
+    private boolean cargarPartida() {
+        try {
+            cantidadPerlas = ArchivoPartida.cargar(
+                    nivel, jugador, tiburones, botiquin, perlas, recogidas,
+                    lugaresPerlas, maxVidas);
+            termino = false;
+            mensaje = "Partida cargada desde partida.txt.";
+            return true;
+        } catch (java.io.IOException | IllegalArgumentException e) {
+            return false;
+        }
     }
 
     private boolean lugarLibre(int x, int y) {
@@ -328,10 +403,11 @@ public class Main extends Application {
         }
 
         CheckPoint boyaGuardado = nivel.getCheckPoints().get(0);
-        if (!boyaGuardado.isActivado() && !boyaUsada && mismaCasilla(boyaGuardado, x, y)) {
-            estadoBoya = new EstadoBoya(jugador, tiburones, botiquin, recogidas);
+        if (mismaCasilla(boyaGuardado, x, y)) {
             boyaGuardado.activar();
-            mensaje = "¡Checkpoint guardado! La boya podrá salvarte una vez.";
+            if (guardarPartida()) {
+                mensaje = "¡Partida guardada! El archivo partida.txt se actualizó.";
+            }
         }
 
         if (x == 10 && y == 10) {
@@ -344,61 +420,17 @@ public class Main extends Application {
         }
     }
 
-    private static class EstadoBoya {
-        final int x, y, vidas, botiquinX, botiquinY;
-        final boolean botiquinUsado;
-        final boolean[] perlas;
-        final int[][] tiburones;
-
-        EstadoBoya(Personaje buzo, Personaje[] enemigos, Utileria botiquin, boolean[] recogidas) {
-            x = buzo.getPosicionX();
-            y = buzo.getPosicionY();
-            vidas = buzo.getVida();
-            perlas = recogidas.clone();
-            botiquinX = botiquin.getPosicionX();
-            botiquinY = botiquin.getPosicionY();
-            botiquinUsado = botiquin.isUsada();
-            tiburones = new int[enemigos.length][3];
-            for (int i = 0; i < enemigos.length; i++) {
-                tiburones[i][0] = enemigos[i].getPosicionX();
-                tiburones[i][1] = enemigos[i].getPosicionY();
-                tiburones[i][2] = enemigos[i].getVida();
-            }
-        }
-    }
-
-    private void regresarAlCheckpoint() {
-        EstadoBoya guardado = estadoBoya;
-        iniciarJuego();
-        jugador.setPosicion(guardado.x, guardado.y);
-        jugador.recibirDaño(maxVidas - guardado.vidas);
-        for (int i = 0; i < tiburones.length; i++) {
-            tiburones[i].setPosicion(guardado.tiburones[i][0], guardado.tiburones[i][1]);
-            tiburones[i].recibirDaño(50 - guardado.tiburones[i][2]);
-        }
-        botiquin.setPosicion(guardado.botiquinX, guardado.botiquinY);
-        if (guardado.botiquinUsado) botiquin.usar();
-        for (int i = 0; i < perlas.length; i++) {
-            if (guardado.perlas[i]) {
-                nivel.getInventario().agregarItem(perlas[i]);
-                recogidas[i] = true;
-                cantidadPerlas++;
-            }
-        }
-        nivel.getCheckPoints().get(0).activar();
-        boyaUsada = true;
-        estadoBoya = null;
-        mensaje = "¡La boya te salvó! Volviste al estado guardado. Ya no puedes usarla otra vez.";
-    }
-
     private void revisarVida() {
         if (jugador.getVida() > 0) return;
-        if (estadoBoya != null && !boyaUsada) {
-            regresarAlCheckpoint();
-        } else {
-            termino = true;
-            mensaje = "Te quedaste sin vidas. Presiona R para volver a jugar.";
+        if (nivel.getCheckPoints().get(0).isActivado()) {
+            iniciarJuego();
+            if (cargarPartida()) {
+                mensaje = "¡La boya te salvó! Regresaste al último guardado.";
+                return;
+            }
         }
+        termino = true;
+        mensaje = "Te quedaste sin vidas. Presiona R para volver al menú.";
     }
 
     private void cargarImagenes() {
@@ -470,10 +502,11 @@ public class Main extends Application {
         for (int i = 0; i < iconosPerlas.length; i++) {
             iconosPerlas[i].setOpacity(recogidas[i] ? 1 : 0.25);
         }
-        iconoBoya.setOpacity(boyaUsada ? 0.35 : estadoBoya != null ? 1 : 0.25);
-        ayudaBoya.setText(boyaUsada ? "Checkpoint utilizado. Ya no queda ningún rescate."
-                : estadoBoya != null ? "Progreso guardado. Te rescatará una vez si mueres."
-                : "Toca la boya para guardar tu progreso una vez.");
+        boolean guardado = nivel.getCheckPoints().get(0).isActivado();
+        iconoBoya.setOpacity(guardado ? 1 : 0.25);
+        ayudaBoya.setText(guardado
+                ? "Progreso guardado. Vuelve a tocar la boya para sobrescribir partida.txt."
+                : "Toca la boya para guardar el progreso en partida.txt.");
         aviso.setText(mensaje);
 
         GraphicsContext g = tablero.getGraphicsContext2D();
@@ -485,10 +518,7 @@ public class Main extends Application {
         for (CheckPoint b : nivel.getCheckPoints()) {
             int x = b.getPosicionX(), y = b.getPosicionY();
             dibujar(g, boya, x, y, 31, 43);
-            if (boyaUsada) {
-                g.setFill(Color.rgb(90, 90, 90, 0.35));
-                g.fillRect(x * casilla + 3, y * casilla + 3, casilla - 6, casilla - 6);
-            } else if (b.isActivado()) {
+            if (b.isActivado()) {
                 g.setStroke(Color.LIMEGREEN);
                 g.setLineWidth(3);
                 g.strokeOval(x * casilla + 3, y * casilla + 3, casilla - 6, casilla - 6);
