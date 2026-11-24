@@ -4,4 +4,3 @@ public interface Inventariable {
     void registrar();
     void borrar();
 }
-git branch
