@@ -21,7 +21,7 @@ public class ArchivoPartida {
         datos.setProperty("boya", boya.getPosicionX() + "," + boya.getPosicionY() + "," + boya.isActivado());
         datos.setProperty("botiquin", botiquin.getPosicionX() + "," + botiquin.getPosicionY() + "," + botiquin.isUsada());
 
-        datos.setProperty("jefe", jefe.getPosicionX() + "," + jefe.getPosicionY() + "," + jefe.getVida());
+        datos.setProperty("jefe", jefe.getPosicionX() + "," + jefe.getPosicionY());
         datos.setProperty("cantidadTiburones", String.valueOf(tiburones.length));
         for (int i = 0; i < tiburones.length; i++) {
             Personaje t = tiburones[i];
@@ -70,9 +70,10 @@ public class ArchivoPartida {
 
         int[] jefeGuardado = null;
         if (datos.getProperty("jefe") != null) {
-            jefeGuardado = numeros(datos, "jefe");
-            if (jefeGuardado[2] < 0 || jefeGuardado[2] > Jefe.VIDA_MAXIMA)
-                throw new IOException("Vida de jefe inválida");
+            String[] partes = datos.getProperty("jefe").split(",");
+            if (partes.length != 2 && partes.length != 3)
+                throw new IOException("Formato inválido del jefe");
+            jefeGuardado = new int[]{Integer.parseInt(partes[0]), Integer.parseInt(partes[1])};
         }
 
         int[][] enemigos = new int[tiburones.length][];
@@ -105,7 +106,6 @@ public class ArchivoPartida {
 
         if (jefeGuardado != null) {
             jefe.setPosicion(jefeGuardado[0], jefeGuardado[1]);
-            jefe.recibirDaño(Jefe.VIDA_MAXIMA - jefeGuardado[2]);
         }
 
         for (int i = 0; i < tiburones.length; i++) {

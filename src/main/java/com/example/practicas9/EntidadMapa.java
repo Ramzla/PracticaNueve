@@ -8,20 +8,23 @@ public abstract class EntidadMapa {
     private int posicionY;
 
     protected EntidadMapa(String nombre, int posicionX, int posicionY) {
-        this.nombre = Objects.requireNonNull(nombre, "nombre");
+        this.nombre = Objects.requireNonNull(nombre, "nombre"); //Evita nombres nulos
         this.posicionX = posicionX;
         this.posicionY = posicionY;
     }
 
+    //consultamos nuestros atributos privados
     public String getNombre() { return nombre; }
     public int getPosicionX() { return posicionX; }
     public int getPosicionY() { return posicionY; }
 
+    //cambianos la posicion de un objeto
     public void setPosicion(int x, int y) {
         posicionX = x;
         posicionY = y;
     }
 
+    //recibira un simbolo de parte de las clases hijas
     public abstract String getSimbolo();
 
     protected final void desplazar(String direccion, int distancia) {

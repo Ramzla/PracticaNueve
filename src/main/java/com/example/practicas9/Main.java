@@ -68,7 +68,7 @@ public class Main {
         recogidas = new boolean[3];
         cantidadPerlas = 0;
         termino = false;
-        mensaje = "Recoge 3 perlas, derrota al jefe y llega al submarino.";
+        mensaje = "Recoge las 3 perlas y escapa del jefe hasta el submarino.";
     }
 
     private boolean guardarPartida() {
@@ -212,7 +212,7 @@ public class Main {
     }
 
     public void moverJefe() {
-        if (termino || !isJefeActivo() || jefe.getVida() == 0) return;
+        if (termino || !isJefeActivo()) return;
         if (!mismaCasilla(jefe, jugador.getPosicionX(), jugador.getPosicionY())) {
             String direccion = caminoHaciaBuzo();
             if (direccion != null) jefe.mover(direccion, 1);
@@ -230,16 +230,7 @@ public class Main {
     public void atacar() {
         if (termino) return;
         if (isJefeActivo()) {
-            if (jefe.getVida() == 0) {
-                mensaje = "El jefe fue derrotado. Ve al submarino.";
-            } else if (distancia(jugador, jefe) <= arma.getAlcance()) {
-                jefe.recibirDaño(arma.getDaño());
-                mensaje = jefe.getVida() == 0
-                        ? "¡Derrotaste al tiburón gigante! Ve al submarino."
-                        : "¡Impactaste al jefe! Vida restante: " + jefe.getVida();
-            } else {
-                mensaje = "Acércate al tiburón gigante para atacarlo.";
-            }
+            mensaje = "El arpón no afecta al jefe. ¡Corre hacia el submarino!";
             return;
         }
         Personaje objetivo = null;
@@ -286,10 +277,8 @@ public class Main {
             }
         }
 
-        if (isJefeActivo() && jefe.getVida() > 0 && cantidadPerlas == perlas.length) {
-            if (mensaje.startsWith("Recogiste ")) {
-                mensaje = "¡Apareció el jefe! Los otros tiburones huyeron. Derrota al gigante.";
-            }
+        if (isJefeActivo() && mensaje.startsWith("Recogiste ")) {
+            mensaje = "¡Apareció el jefe! Los otros tiburones huyeron. ¡Corre al submarino!";
         }
 
         CheckPoint boyaGuardado = nivel.getCheckPoints().get(0);
@@ -303,11 +292,9 @@ public class Main {
         if (x == 10 && y == 10) {
             if (cantidadPerlas < perlas.length) {
                 mensaje = "Faltan perlas para subir al submarino.";
-            } else if (jefe.getVida() > 0) {
-                mensaje = "Debes derrotar al tiburón gigante para subir al submarino.";
             } else {
                 termino = true;
-                mensaje = "¡Ganaste! Derrotaste al jefe y rescataste las tres perlas.";
+                mensaje = "¡Ganaste! Escapaste del tiburón gigante con las tres perlas.";
             }
         }
     }

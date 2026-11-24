@@ -225,7 +225,7 @@ public class Interfaz extends Application {
     private VBox crearPanel() {
         Label titulo = new Label("Rescate Marino");
         titulo.setFont(Font.font("Arial", 22));
-        Label objetivo = new Label("Recoge 3 perlas, derrota al tiburón gigante y llega al submarino. La boya guarda tu progreso.");
+        Label objetivo = new Label("Recoge 3 perlas y llega al submarino. ¡Cuando aparezca el jefe, corre! La boya guarda tu progreso.");
         objetivo.setWrapText(true);
 
         HBox filaVidas = fila("Vidas:", 5);
@@ -440,15 +440,7 @@ public class Interfaz extends Application {
         }
         if (juego.isJefeActivo()) {
             Jefe jefe = juego.getJefe();
-            if (jefe.getVida() > 0) {
-                int x = jefe.getPosicionX(), y = jefe.getPosicionY();
-                dibujar(g, imagenJefe, x, y, 69, 61);
-                g.setFill(Color.DARKRED);
-                g.fillRect(x * casilla + 2, y * casilla - 2, 44, 5);
-                g.setFill(Color.LIMEGREEN);
-                g.fillRect(x * casilla + 2, y * casilla - 2,
-                        44 * jefe.getVida() / (double) Jefe.VIDA_MAXIMA, 5);
-            }
+            dibujar(g, imagenJefe, jefe.getPosicionX(), jefe.getPosicionY(), 69, 61);
         } else {
             for (int i = 0; i < juego.getTiburones().length; i++) {
                 if (juego.getTiburones()[i].getVida() > 0)
