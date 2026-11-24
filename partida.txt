@@ -1,8 +1,8 @@
 #Rescate Marino - estado del juego
-#Tue Nov 17 23:53:24 PST 2026
+#Wed Nov 18 14:31:29 PST 2026
 botiquin=3,7,false
 boya=8,9,true
-buzo=8,9,1
+buzo=8,9,3
 cantidadCorales=25
 cantidadPerlas=3
 cantidadTiburones=6
@@ -31,12 +31,13 @@ coral.6=8,4,false
 coral.7=4,6,false
 coral.8=5,6,false
 coral.9=7,7,false
+jefe=3,4,150
 perla.0=5,1,true
-perla.1=9,2,false
-perla.2=2,9,false
-tiburon.0=10,5,50
-tiburon.1=5,5,50
-tiburon.2=3,7,50
-tiburon.3=7,9,50
-tiburon.4=1,2,50
-tiburon.5=1,5,50
+perla.1=9,2,true
+perla.2=2,9,true
+tiburon.0=8,2,0
+tiburon.1=9,3,50
+tiburon.2=3,7,0
+tiburon.3=8,6,50
+tiburon.4=5,10,50
+tiburon.5=5,7,25

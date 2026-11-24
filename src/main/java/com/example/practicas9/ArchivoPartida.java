@@ -12,7 +12,7 @@ public class ArchivoPartida {
     private static final String ARCHIVO = "partida.txt";
 
     public static void guardar(Nivel nivel, Personaje buzo, Personaje[] tiburones,
-                               Utileria botiquin, boolean[] recogidas, int[][] lugaresPerlas)
+                               Utileria botiquin, boolean[] recogidas, int[][] lugaresPerlas, Jefe jefe)
             throws IOException {
         Properties datos = new Properties();
         datos.setProperty("buzo", buzo.getPosicionX() + "," + buzo.getPosicionY() + "," + buzo.getVida());
@@ -21,6 +21,7 @@ public class ArchivoPartida {
         datos.setProperty("boya", boya.getPosicionX() + "," + boya.getPosicionY() + "," + boya.isActivado());
         datos.setProperty("botiquin", botiquin.getPosicionX() + "," + botiquin.getPosicionY() + "," + botiquin.isUsada());
 
+        datos.setProperty("jefe", jefe.getPosicionX() + "," + jefe.getPosicionY() + "," + jefe.getVida());
         datos.setProperty("cantidadTiburones", String.valueOf(tiburones.length));
         for (int i = 0; i < tiburones.length; i++) {
             Personaje t = tiburones[i];
@@ -48,7 +49,7 @@ public class ArchivoPartida {
 
     public static int cargar(Nivel nivel, Personaje buzo, Personaje[] tiburones,
                              Utileria botiquin, Recompensa[] perlas, boolean[] recogidas,
-                             int[][] lugaresPerlas, int maxVidas) throws IOException {
+                             int[][] lugaresPerlas, int maxVidas, Jefe jefe) throws IOException {
         Properties datos = new Properties();
         try (BufferedReader reader = new BufferedReader(new FileReader(ARCHIVO))) {
             datos.load(reader);
@@ -65,6 +66,13 @@ public class ArchivoPartida {
                 || Integer.parseInt(datos.getProperty("cantidadPerlas", "-1")) != perlas.length
                 || Integer.parseInt(datos.getProperty("cantidadCorales", "-1")) != nivel.getObstaculos().size()) {
             throw new IOException("La cantidad de elementos no coincide");
+        }
+
+        int[] jefeGuardado = null;
+        if (datos.getProperty("jefe") != null) {
+            jefeGuardado = numeros(datos, "jefe");
+            if (jefeGuardado[2] < 0 || jefeGuardado[2] > Jefe.VIDA_MAXIMA)
+                throw new IOException("Vida de jefe inválida");
         }
 
         int[][] enemigos = new int[tiburones.length][];
@@ -94,6 +102,11 @@ public class ArchivoPartida {
         if (boyaActivada) nivel.getCheckPoints().get(0).activar();
         botiquin.setPosicion(bot[0], bot[1]);
         if (botiquinUsado) botiquin.usar();
+
+        if (jefeGuardado != null) {
+            jefe.setPosicion(jefeGuardado[0], jefeGuardado[1]);
+            jefe.recibirDaño(Jefe.VIDA_MAXIMA - jefeGuardado[2]);
+        }
 
         for (int i = 0; i < tiburones.length; i++) {
             tiburones[i].setPosicion(enemigos[i][0], enemigos[i][1]);
