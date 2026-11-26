@@ -2,7 +2,6 @@ package com.example.practicas9;
 
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
-import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -13,12 +12,10 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -28,46 +25,43 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 public class Interfaz extends Application {
-    private final int columnas = Main.COLUMNAS, filas = Main.FILAS, casilla = 48;
+    // TAMANO_CASILLA - Tamaño de cada casilla
+    private final int casilla = 48;
     private final Main juego = new Main();
+    //Tablero del juego
     private Canvas tablero;
-    private Label aviso;
-    private final Label[] corazones = new Label[Main.MAX_VIDAS];
-    private final ImageView[] iconosPerlas = new ImageView[3];
-    private ImageView iconoBoya;
-    private Tooltip ayudaBoya;
-    private int vidasAnteriores = Main.MAX_VIDAS;
-
-    private Image boya, buzo, botiquinImagen, submarino, coral, tiburonImagen, imagenJefe;
-    private Image[] imagenesPerlas;
+    //Imagenes del mapa
+    private Image boya, buzo, botiquinImagen, submarino, coral, tiburonImagen;
+    private final java.util.Map<String, Image> imagenesPerlas = new java.util.HashMap<>();
     private Stage ventanaPrincipal;
+    //Reloj que llama a Main para mover tiburones
     private Timeline relojTiburones;
-    private boolean relojEsJefe;
     private StackPane capaMenu;
     private StackPane capaNiveles;
 
+    // INICIO_VENTANA - JavaFX abre la ventana
     @Override
     public void start(Stage ventana) {
         ventanaPrincipal = ventana;
         juego.iniciarJuego();
         cargarImagenes();
-        tablero = new Canvas(columnas * casilla, filas * casilla);
+        tablero = new Canvas(juego.getNivel().getColumnas() * casilla, juego.getNivel().getFilas() * casilla);
 
+        //Menus encima del tablero
         StackPane areaTablero = new StackPane(tablero);
         capaMenu = crearMenu(ventana);
         capaNiveles = crearSeleccionNiveles(ventana);
         capaNiveles.setVisible(false);
         areaTablero.getChildren().addAll(capaMenu, capaNiveles);
 
-        BorderPane pantalla = new BorderPane();
-        pantalla.setCenter(areaTablero);
-        pantalla.setRight(crearPanel());
-
-        Scene escena = new Scene(pantalla);
+        // TECLAS - Llama a Main segun la tecla
+        Scene escena = new Scene(areaTablero);
         escena.setOnKeyPressed(e -> {
+            //Bloquea las teclas en los menus
             if (capaMenu.isVisible() || capaNiveles.isVisible()) return;
 
             KeyCode tecla = e.getCode();
+            //Controles del buzo
             switch (tecla) {
                 case W -> { juego.moverJugador("norte"); actualizar(); }
                 case S -> { juego.moverJugador("sur"); actualizar(); }
@@ -80,6 +74,7 @@ public class Interfaz extends Application {
             }
         });
 
+        //Evita cambiar el tamaño de la ventana
         ventana.setResizable(false);
         ventana.setScene(escena);
         ventana.show();
@@ -87,29 +82,70 @@ public class Interfaz extends Application {
         mostrarMenu(ventana);
     }
 
+    // ESTILOS_INTERFAZ - Estilos de los menus
+    private Label etiqueta(String texto, String estilo) {
+        Label etiqueta = new Label(texto);
+        etiqueta.setStyle(estilo);
+        return etiqueta;
+    }
+
+    private Label etiqueta(String texto, int tamano, String estilo) {
+        Label etiqueta = etiqueta(texto, estilo);
+        etiqueta.setFont(Font.font("Arial", tamano));
+        return etiqueta;
+    }
+
+    private Button boton(String texto, int ancho, String estilo) {
+        Button boton = new Button(texto);
+        boton.setPrefWidth(ancho);
+        boton.setStyle(estilo);
+        return boton;
+    }
+
+    private Button tarjetaNivel(ImageView imagen, Label titulo, Label estado) {
+        VBox contenido = new VBox(10, imagen, titulo, estado);
+        contenido.setAlignment(Pos.CENTER);
+        Button boton = new Button();
+        boton.setGraphic(contenido);
+        boton.setPrefSize(185, 225);
+        return boton;
+    }
+
+    private VBox cajaMenu(int espacio, int ancho, int alto, javafx.scene.Node... elementos) {
+        VBox caja = new VBox(espacio, elementos);
+        caja.setAlignment(Pos.CENTER);
+        caja.setPadding(new Insets(26));
+        caja.setMaxSize(ancho, alto);
+        return caja;
+    }
+
+    private StackPane fondoMenu(VBox contenido) {
+        StackPane fondo = new StackPane(contenido);
+        fondo.setStyle("-fx-background-color: rgba(9, 50, 74, 0.55);");
+        return fondo;
+    }
+
+    // MENU_PRINCIPAL - Nueva partida o cargar
     private StackPane crearMenu(Stage ventana) {
-        Label titulo = new Label("Rescate Marino");
-        titulo.setFont(Font.font("Arial", 25));
-        titulo.setStyle("-fx-text-fill: #135e87; -fx-font-weight: bold;");
+        Label titulo = etiqueta("Rescate Marino", 25, "-fx-text-fill: #135e87; -fx-font-weight: bold;");
 
-        Label descripcion = new Label("Elige cómo quieres jugar");
-        descripcion.setStyle("-fx-text-fill: #406a7d;");
+        Label descripcion = etiqueta("Elige cómo quieres jugar", "-fx-text-fill: #406a7d;");
 
-        Button nueva = new Button("Nueva partida");
-        Button cargar = new Button("Cargar partida");
-        nueva.setPrefWidth(190);
-        cargar.setPrefWidth(190);
-        nueva.setStyle("-fx-background-color: #168bc4; -fx-text-fill: white; -fx-font-size: 14px;");
-        cargar.setStyle("-fx-background-color: #d8ebf5; -fx-text-fill: #145b7e; -fx-font-size: 14px;");
+        //Estilo de los botones
+        Button nueva = boton("Nueva partida", 190, "-fx-background-color: #168bc4; -fx-text-fill: white; -fx-font-size: 14px;");
+        Button cargar = boton("Cargar partida", 190, "-fx-background-color: #d8ebf5; -fx-text-fill: #145b7e; -fx-font-size: 14px;");
 
+        //Abre la seleccion de niveles
         nueva.setOnAction(e -> mostrarSeleccionNiveles(ventana));
 
+        // CARGAR_PARTIDA - Main intenta cargar el progreso
         cargar.setOnAction(e -> {
             juego.iniciarJuego();
             if (juego.cargarPartida()) {
                 abrirJuego(ventana);
             } else {
                 actualizar();
+                //Aviso si falla la carga
                 Alert alerta = new Alert(Alert.AlertType.INFORMATION);
                 alerta.initOwner(ventana);
                 alerta.setTitle("Cargar partida");
@@ -119,38 +155,26 @@ public class Interfaz extends Application {
             }
         });
 
-        VBox menu = new VBox(16, titulo, descripcion, nueva, cargar);
-        menu.setAlignment(Pos.CENTER);
-        menu.setPadding(new Insets(26));
-        menu.setMaxWidth(320);
-        menu.setMaxHeight(270);
+        //Menu con separacion de 16
+        VBox menu = cajaMenu(16, 320, 270, titulo, descripcion, nueva, cargar);
         menu.setStyle("-fx-background-color: #eaf7ff; -fx-background-radius: 16; "
                 + "-fx-border-color: #b4dceb; -fx-border-radius: 16; -fx-border-width: 2;");
 
-        StackPane fondo = new StackPane(menu);
-        fondo.setStyle("-fx-background-color: rgba(9, 50, 74, 0.55);");
-        return fondo;
+        //Fondo del menu
+        return fondoMenu(menu);
     }
 
+    // SELECCION_NIVELES - Menu de niveles
     private StackPane crearSeleccionNiveles(Stage ventana) {
-        Label titulo = new Label("Selecciona un nivel");
-        titulo.setFont(Font.font("Arial", 26));
-        titulo.setStyle("-fx-text-fill: #135e87; -fx-font-weight: bold;");
+        Label titulo = etiqueta("Selecciona un nivel", 26, "-fx-text-fill: #135e87; -fx-font-weight: bold;");
 
-        Label descripcion = new Label("Solo el nivel 1 está disponible");
-        descripcion.setStyle("-fx-text-fill: #406a7d; -fx-font-size: 13px;");
+        Label descripcion = etiqueta("Solo el nivel 1 está disponible", "-fx-text-fill: #406a7d; -fx-font-size: 13px;");
 
+        // NIVEL_1 - Main inicia la partida
         ImageView imagenNivel1 = icono(cargarImagen("numero1"), 130);
-        Label textoNivel1 = new Label("NIVEL 1");
-        textoNivel1.setStyle("-fx-text-fill: #115c83; -fx-font-size: 17px; -fx-font-weight: bold;");
-        Label disponible = new Label("Disponible");
-        disponible.setStyle("-fx-text-fill: #168c77; -fx-font-size: 12px;");
-        VBox contenidoNivel1 = new VBox(10, imagenNivel1, textoNivel1, disponible);
-        contenidoNivel1.setAlignment(Pos.CENTER);
-
-        Button nivel1 = new Button();
-        nivel1.setGraphic(contenidoNivel1);
-        nivel1.setPrefSize(185, 225);
+        Label textoNivel1 = etiqueta("NIVEL 1", "-fx-text-fill: #115c83; -fx-font-size: 17px; -fx-font-weight: bold;");
+        Label disponible = etiqueta("Disponible", "-fx-text-fill: #168c77; -fx-font-size: 12px;");
+        Button nivel1 = tarjetaNivel(imagenNivel1, textoNivel1, disponible);
         nivel1.setStyle("-fx-background-color: white; -fx-background-radius: 14; "
                 + "-fx-border-color: #51b2ce; -fx-border-radius: 14; -fx-border-width: 2; -fx-cursor: hand;");
         nivel1.setOnAction(e -> {
@@ -158,47 +182,40 @@ public class Interfaz extends Application {
             abrirJuego(ventana);
         });
 
+        // NIVEL_2 - Nivel bloqueado
         ImageView imagenNivel2 = icono(cargarImagen("numero2"), 130);
         ColorAdjust apagado = new ColorAdjust();
+        //Cambia el color de la imagen
         apagado.setSaturation(-0.75);
         apagado.setBrightness(0.18);
         imagenNivel2.setEffect(apagado);
-        Label textoNivel2 = new Label("NIVEL 2");
-        textoNivel2.setStyle("-fx-text-fill: #7a9baa; -fx-font-size: 17px; -fx-font-weight: bold;");
-        Label bloqueado = new Label("Bloqueado - Próximamente");
-        bloqueado.setStyle("-fx-text-fill: #8ca7b4; -fx-font-size: 12px;");
-        VBox contenidoNivel2 = new VBox(10, imagenNivel2, textoNivel2, bloqueado);
-        contenidoNivel2.setAlignment(Pos.CENTER);
-
-        Button nivel2 = new Button();
-        nivel2.setGraphic(contenidoNivel2);
-        nivel2.setPrefSize(185, 225);
+        Label textoNivel2 = etiqueta("NIVEL 2", "-fx-text-fill: #7a9baa; -fx-font-size: 17px; -fx-font-weight: bold;");
+        Label bloqueado = etiqueta("Bloqueado - Próximamente", "-fx-text-fill: #8ca7b4; -fx-font-size: 12px;");
+        Button nivel2 = tarjetaNivel(imagenNivel2, textoNivel2, bloqueado);
         nivel2.setStyle("-fx-background-color: #f2f7fa; -fx-background-radius: 14; "
                 + "-fx-border-color: #d3e1e8; -fx-border-radius: 14; -fx-border-width: 2;");
+        //Nivel 2 aun no programado
         nivel2.setDisable(true);
         nivel2.setFocusTraversable(false);
 
+        //Niveles uno al lado del otro
         HBox opciones = new HBox(16, nivel1, nivel2);
         opciones.setAlignment(Pos.CENTER);
 
+        //Regresa al menu
         Button volver = new Button("Volver al menú");
         volver.setStyle("-fx-background-color: transparent; -fx-text-fill: #246b91; "
                 + "-fx-font-size: 13px; -fx-cursor: hand;");
         volver.setOnAction(e -> mostrarMenu(ventana));
 
-        VBox contenido = new VBox(17, titulo, descripcion, opciones, volver);
-        contenido.setAlignment(Pos.CENTER);
-        contenido.setPadding(new Insets(26));
-        contenido.setMaxWidth(485);
-        contenido.setMaxHeight(415);
+        VBox contenido = cajaMenu(17, 485, 415, titulo, descripcion, opciones, volver);
         contenido.setStyle("-fx-background-color: #eaf7ff; -fx-background-radius: 18; "
                 + "-fx-border-color: #b4dceb; -fx-border-radius: 18; -fx-border-width: 2;");
 
-        StackPane fondo = new StackPane(contenido);
-        fondo.setStyle("-fx-background-color: rgba(9, 50, 74, 0.55);");
-        return fondo;
+        return fondoMenu(contenido);
     }
 
+    //Abre los niveles y pausa los tiburones
     private void mostrarSeleccionNiveles(Stage ventana) {
         detenerMovimientoTiburones();
         capaMenu.setVisible(false);
@@ -206,6 +223,7 @@ public class Interfaz extends Application {
         ventana.setTitle("Rescate Marino - Selección de niveles");
     }
 
+    //Abre el menu y pausa los tiburones
     private void mostrarMenu(Stage ventana) {
         detenerMovimientoTiburones();
         capaNiveles.setVisible(false);
@@ -213,113 +231,50 @@ public class Interfaz extends Application {
         ventana.setTitle("Rescate Marino - Inicio");
     }
 
+    //Oculta los menus y activa los tiburones
     private void abrirJuego(Stage ventana) {
         capaMenu.setVisible(false);
         capaNiveles.setVisible(false);
-        ventana.setTitle("Práctica 10 - Rescate Marino");
-        vidasAnteriores = juego.getJugador().getVida();
         actualizar();
         iniciarMovimientoTiburones();
     }
 
-    private VBox crearPanel() {
-        Label titulo = new Label("Rescate Marino");
-        titulo.setFont(Font.font("Arial", 22));
-        Label objetivo = new Label("Recoge 3 perlas y llega al submarino. ¡Cuando aparezca el jefe, corre! La boya guarda tu progreso.");
-        objetivo.setWrapText(true);
-
-        HBox filaVidas = fila("Vidas:", 5);
-        ((Label) filaVidas.getChildren().get(0)).setStyle("-fx-font-size: 16px;");
-        for (int i = 0; i < corazones.length; i++) {
-            Label corazon = new Label("♥");
-            corazon.setFont(Font.font("Arial", 25));
-            corazon.setMinWidth(23);
-            corazones[i] = corazon;
-            filaVidas.getChildren().add(corazon);
-        }
-
-        HBox filaPerlas = fila("Perlas:", 8);
-        for (int i = 0; i < juego.getPerlas().length; i++) {
-            ImageView icono = icono(imagenesPerlas[i], 37);
-            icono.setFitHeight(35);
-            Tooltip.install(icono, new Tooltip(juego.getPerlas()[i].getNombre()));
-            iconosPerlas[i] = icono;
-            filaPerlas.getChildren().add(icono);
-        }
-
-        HBox filaBoya = fila("Boya:", 8);
-        iconoBoya = icono(boya, 32);
-        iconoBoya.setFitHeight(38);
-        ayudaBoya = new Tooltip();
-        Tooltip.install(iconoBoya, ayudaBoya);
-        filaBoya.getChildren().add(iconoBoya);
-
-        Label tituloControles = new Label("Controles");
-        tituloControles.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
-        VBox controles = new VBox(4, tituloControles,
-                control("teclas", 105, "Mover", 12),
-                control("espacio", 110, "Atacar", 7),
-                control("f", 48, "Curar", 12),
-                control("r", 48, "Menú principal", 12));
-
-        aviso = new Label();
-        aviso.setWrapText(true);
-        aviso.setMinHeight(48);
-        aviso.setStyle("-fx-font-size: 13px; -fx-text-fill: #235f7b;");
-
-        VBox panel = new VBox(7, titulo, objetivo, filaVidas, filaPerlas,
-                filaBoya, controles, aviso);
-        panel.setPadding(new Insets(15));
-        panel.setPrefWidth(305);
-        panel.setMinHeight(filas * casilla);
-        panel.setStyle("-fx-background-color: #eaf7ff;");
-        return panel;
-    }
-
-    private HBox fila(String texto, int separacion) {
-        Label etiqueta = new Label(texto);
-        etiqueta.setStyle("-fx-font-size: 15px;");
-        HBox fila = new HBox(separacion, etiqueta);
-        fila.setAlignment(Pos.CENTER_LEFT);
-        return fila;
-    }
-
-    private HBox control(String imagen, int ancho, String accion, int espacio) {
-        HBox fila = new HBox(espacio, icono(cargarImagen(imagen), ancho), new Label(accion));
-        fila.setAlignment(Pos.CENTER_LEFT);
-        return fila;
-    }
-
+    //Ajusta el ancho de la imagen
     private ImageView icono(Image imagen, int ancho) {
         ImageView vista = new ImageView(imagen);
         vista.setFitWidth(ancho);
+        //Evita deformar la imagen
         vista.setPreserveRatio(true);
         return vista;
     }
 
+    //R regresa al menu
     private void reiniciar() {
         mostrarMenu(ventanaPrincipal);
     }
 
+    // VELOCIDAD_TIBURONES - Main indica el intervalo
     private void iniciarMovimientoTiburones() {
         detenerMovimientoTiburones();
-        relojEsJefe = juego.isJefeActivo();
-        int intervalo = relojEsJefe ? Jefe.VELOCIDAD_MS : 550;
+        int intervalo = juego.getVelocidadTiburones();
+        //Ejecuta un turno cada intervalo
         relojTiburones = new Timeline(new KeyFrame(Duration.millis(intervalo), e -> {
+            //Detiene el reloj si termina el juego
             if (juego.isTermino()) {
                 detenerMovimientoTiburones();
                 return;
             }
-            if (juego.isJefeActivo()) juego.moverJefe();
-            else juego.moverTiburones();
-            juego.revisarVida();
+            juego.moverTiburones();
+            //Dibuja el mapa despues del turno
             actualizar();
             if (juego.isTermino()) detenerMovimientoTiburones();
         }));
+        //Repite los turnos
         relojTiburones.setCycleCount(Animation.INDEFINITE);
         relojTiburones.play();
     }
 
+    //Detiene el reloj
     private void detenerMovimientoTiburones() {
         if (relojTiburones != null) {
             relojTiburones.stop();
@@ -327,11 +282,13 @@ public class Interfaz extends Application {
         }
     }
 
+    //JavaFX detiene el reloj al cerrar
     @Override
     public void stop() {
         detenerMovimientoTiburones();
     }
 
+    // CARGAR_IMAGENES - Carga las imagenes del juego
     private void cargarImagenes() {
         boya = cargarImagen("boya");
         buzo = cargarImagen("buzo");
@@ -339,115 +296,116 @@ public class Interfaz extends Application {
         submarino = cargarImagen("submarino");
         coral = cargarImagen("coral");
         tiburonImagen = cargarImagen("tiburon");
-        imagenJefe = cargarImagen("jefe");
-        imagenesPerlas = new Image[] {
-                cargarImagen("perlaazul"), cargarImagen("perlaroja"), cargarImagen("perlaverde")
-        };
+        for (Recompensa perla : juego.getNivel().getPerlas())
+            imagenesPerlas.computeIfAbsent(perla.getImagen(), this::cargarImagen);
     }
 
+    //Busca la imagen en resources/imagenes
     private Image cargarImagen(String nombre) {
         return new Image(Interfaz.class.getResource("/imagenes/" + nombre + ".png").toExternalForm());
     }
 
+    // DIBUJAR_IMAGEN - Centra la imagen en su casilla
     private void dibujar(GraphicsContext g, Image imagen, int x, int y, int ancho, int alto) {
+        //Convierte casillas a pixeles
         double px = x * casilla + (casilla - ancho) / 2.0;
         double py = y * casilla + (casilla - alto) / 2.0;
         g.drawImage(imagen, px, py, ancho, alto);
     }
 
+    // COLORES_MAPA - Colores de las casillas
     private void dibujarTablero(GraphicsContext g) {
+        //Fondo del tablero
         g.setFill(Color.web("#87d4ed"));
         g.fillRect(0, 0, tablero.getWidth(), tablero.getHeight());
+        int columnas = juego.getNivel().getColumnas(), filas = juego.getNivel().getFilas();
         for (int y = 0; y < filas; y++) {
             for (int x = 0; x < columnas; x++) {
+                //Bordes oscuros y colores alternados
                 Color color = x == 0 || y == 0 || x == columnas - 1 || y == filas - 1
                         ? Color.web("#167caa")
                         : (x + y) % 2 == 0 ? Color.web("#c5f0fb") : Color.web("#ade6f5");
                 g.setFill(color);
+                //Separa las casillas
                 g.fillRect(x * casilla + 1, y * casilla + 1, casilla - 2, casilla - 2);
             }
         }
     }
 
-    private void dibujarTiburon(GraphicsContext g, Personaje enemigo, int numero) {
+    // TAMANO_TIBURON - Dibuja al tiburon
+    private void dibujarTiburon(GraphicsContext g, Tiburon enemigo, int numero) {
         int x = enemigo.getPosicionX(), y = enemigo.getPosicionY();
+        //Ancho y alto del tiburon
         dibujar(g, tiburonImagen, x, y, 45, 23);
+        // BARRA_VIDA - Fondo rojo de la barra
         g.setFill(Color.DARKRED);
         g.fillRect(x * casilla + 9, y * casilla + 5, 30, 4);
+        //Parte verde segun la vida actual
         g.setFill(Color.LIMEGREEN);
-        g.fillRect(x * casilla + 9, y * casilla + 5, 30 * enemigo.getVida() / 50.0, 4);
+        g.fillRect(x * casilla + 9, y * casilla + 5, 30 * enemigo.getVida() / (double) enemigo.getVidaMaxima(), 4);
         g.setFill(Color.BLACK);
         g.setFont(Font.font("Arial", 11));
         g.fillText(String.valueOf(numero), x * casilla + 22, y * casilla + 44);
     }
 
+    // ACTUALIZAR - Consulta Nivel y dibuja el mapa
     private void actualizar() {
         if (tablero == null) return;
-        if (relojTiburones != null && relojEsJefe != juego.isJefeActivo()) {
-            iniciarMovimientoTiburones();
-        }
+        Nivel nivel = juego.getNivel();
 
-        int vidas = juego.getJugador().getVida();
-        for (int i = 0; i < corazones.length; i++) {
-            Label corazon = corazones[i];
-            corazon.setTextFill(i < vidas ? Color.web("#ce304c") : Color.web("#b1c7d1"));
-            if (vidas != vidasAnteriores && i == (vidas < vidasAnteriores ? vidas : vidas - 1)) {
-                ScaleTransition efecto = new ScaleTransition(Duration.millis(180), corazon);
-                efecto.setFromX(1.6);
-                efecto.setFromY(1.6);
-                efecto.setToX(1);
-                efecto.setToY(1);
-                efecto.play();
-            }
+        // ESTADO_PARTIDA - Vidas, perlas y boya en el titulo
+        if (!capaMenu.isVisible() && !capaNiveles.isVisible()) {
+            ventanaPrincipal.setTitle("Rescate Marino | Vidas: " + nivel.getBuzo().getVida()
+                    + "/" + nivel.getBuzo().getVidaMaxima() + " | Perlas: "
+                    + nivel.getCantidadPerlas() + "/" + nivel.getTotalPerlas()
+                    + " | Boya: " + (nivel.getBoya().isActivado() ? "Activa" : "Inactiva"));
         }
-        vidasAnteriores = vidas;
-
-        for (int i = 0; i < iconosPerlas.length; i++) {
-            iconosPerlas[i].setOpacity(juego.getRecogidas()[i] ? 1 : 0.25);
-        }
-        boolean guardado = juego.getNivel().getCheckPoints().get(0).isActivado();
-        iconoBoya.setOpacity(guardado ? 1 : 0.25);
-        ayudaBoya.setText(guardado
-                ? "Progreso guardado. Vuelve a tocar la boya para sobrescribir partida.txt."
-                : "Toca la boya para guardar el progreso en partida.txt.");
-        aviso.setText(juego.getMensaje());
+        Recompensa[] perlas = nivel.getPerlas();
 
         GraphicsContext g = tablero.getGraphicsContext2D();
         dibujarTablero(g);
-        dibujar(g, submarino, 10, 10, 45, 42);
-        for (Obstaculo o : juego.getNivel().getObstaculos()) {
+        // SUBMARINO - Posicion desde Nivel
+        dibujar(g, submarino, nivel.getSalidaX(), nivel.getSalidaY(), 45, 42);
+        // CORALES - Dibuja los corales sin destruir
+        for (Obstaculo o : nivel.getObstaculos()) {
             if (!o.isDestruido()) dibujar(g, coral, o.getPosicionX(), o.getPosicionY(), 38, 43);
         }
-        for (CheckPoint b : juego.getNivel().getCheckPoints()) {
-            int x = b.getPosicionX(), y = b.getPosicionY();
-            dibujar(g, boya, x, y, 31, 43);
-            if (b.isActivado()) {
-                g.setStroke(Color.LIMEGREEN);
-                g.setLineWidth(3);
-                g.strokeOval(x * casilla + 3, y * casilla + 3, casilla - 6, casilla - 6);
-            }
+        // BOYA_MAPA - Dibuja la boya de Nivel
+        CheckPoint b = nivel.getBoya();
+        int x = b.getPosicionX(), y = b.getPosicionY();
+        dibujar(g, boya, x, y, 31, 43);
+        //Circulo verde si esta activada
+        if (b.isActivado()) {
+            g.setStroke(Color.LIMEGREEN);
+            g.setLineWidth(3);
+            g.strokeOval(x * casilla + 3, y * casilla + 3, casilla - 6, casilla - 6);
         }
-        for (int i = 0; i < juego.getPerlas().length; i++) {
-            if (!juego.getRecogidas()[i]) {
-                dibujar(g, imagenesPerlas[i], juego.getLugaresPerlas()[i][0], juego.getLugaresPerlas()[i][1], 41, 39);
-            }
+        // PERLAS_MAPA - Dibuja las perlas no recogidas
+        for (Recompensa perla : perlas) {
+            if (!perla.isRecogida())
+                dibujar(g, imagenesPerlas.get(perla.getImagen()), perla.getPosicionX(), perla.getPosicionY(), 41, 39);
         }
-        dibujar(g, botiquinImagen, juego.getBotiquin().getPosicionX(), juego.getBotiquin().getPosicionY(), 42, 37);
-        if (juego.getBotiquin().isUsada()) {
+        // BOTIQUIN_MAPA - Dibuja el botiquin
+        dibujar(g, botiquinImagen, nivel.getBotiquin().getPosicionX(), nivel.getBotiquin().getPosicionY(), 42, 37);
+        //Oscurece el botiquin usado
+        if (nivel.getBotiquin().isUsada()) {
             g.setFill(Color.rgb(70, 70, 70, 0.45));
-            g.fillRect(juego.getBotiquin().getPosicionX() * casilla + 3,
-                    juego.getBotiquin().getPosicionY() * casilla + 3, casilla - 6, casilla - 6);
+            g.fillRect(nivel.getBotiquin().getPosicionX() * casilla + 3,
+                    nivel.getBotiquin().getPosicionY() * casilla + 3, casilla - 6, casilla - 6);
         }
-        if (juego.isJefeActivo()) {
-            Jefe jefe = juego.getJefe();
-            dibujar(g, imagenJefe, jefe.getPosicionX(), jefe.getPosicionY(), 69, 61);
-        } else {
-            for (int i = 0; i < juego.getTiburones().length; i++) {
-                if (juego.getTiburones()[i].getVida() > 0)
-                    dibujarTiburon(g, juego.getTiburones()[i], i + 1);
-            }
+        // TIBURONES_MAPA - Dibuja los tiburones vivos
+        Tiburon[] tiburones = nivel.getTiburones();
+        for (int i = 0; i < tiburones.length; i++) {
+            if (tiburones[i].getVida() > 0)
+                dibujarTiburon(g, tiburones[i], i + 1);
         }
-        dibujar(g, buzo, juego.getJugador().getPosicionX(), juego.getJugador().getPosicionY(), 43, 40);
+        // BUZO_MAPA - Dibuja al buzo
+        dibujar(g, buzo, nivel.getBuzo().getPosicionX(), nivel.getBuzo().getPosicionY(), 43, 40);
+        // MENSAJES_MAPA - Controles y mensajes de Main
+        g.setFill(Color.WHITE);
+        g.setFont(Font.font("Arial", 13));
+        g.fillText("WASD: mover | Espacio: atacar | F: curar | R: menú", 10, 28, tablero.getWidth() - 20);
+        g.fillText(juego.getMensaje(), 10, tablero.getHeight() - 19, tablero.getWidth() - 20);
     }
 
     public static void main(String[] args) {

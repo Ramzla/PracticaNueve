@@ -1,21 +1,36 @@
 package com.example.practicas9;
 
-public class Recompensa implements Inventariable {
-    private final String nombre;
-    private final int valor;
-    private final String tipo;
+//Perlas que recoge el buzo
+public class Recompensa extends EntidadConEstado implements Inventariable {
 
-    public Recompensa(String nombre, int valor, String tipo) {
-        this.nombre = nombre;
-        this.valor = valor;
-        this.tipo = tipo;
+    private final String imagen;
+
+    //Nivel crea las perlas con su posicion e imagen
+    public Recompensa(String nombre, int x, int y, String imagen) {
+        super(nombre, x, y);
+        this.imagen = imagen;
     }
 
-    public String getNombre() { return nombre; }
-    public int getValor() { return valor; }
-    public String getTipo() { return tipo; }
+    //Interfaz obtiene la imagen de la perla
+    public String getImagen() { return imagen; }
 
-    @Override public void registrar() { System.out.println("Recompensa obtenida: " + nombre); }
-    @Override public void borrar() { System.out.println("Recompensa retirada: " + nombre); }
-    @Override public String toString() { return nombre + " [" + tipo + ", " + valor + " puntos]"; }
+    //Nivel e Interfaz revisan si la perla fue recogida
+    public boolean isRecogida() { return getEstado(); }
+
+    //Buzo recoge la perla si esta encima y hay espacio
+    public boolean recoger(Personaje buzo, Inventario inventario) {
+        return !isRecogida() && mismaPosicion(buzo) && inventario.agregarItem(this);
+    }
+
+    //Inventario marca la perla como recogida
+    @Override public void registrar() {
+        setEstado(true);
+        System.out.println("Recompensa obtenida: " + getNombre());
+    }
+
+    //Inventario retira la perla al recuperar el progreso
+    @Override public void borrar() {
+        setEstado(false);
+        System.out.println("Recompensa retirada: " + getNombre());
+    }
 }
